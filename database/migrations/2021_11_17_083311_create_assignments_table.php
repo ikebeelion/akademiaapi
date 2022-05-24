@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateAssignmentsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('assignments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('subjectid')->constrained('subject__class_groups');
+            $table->foreignId('classid')->constrained('class_room_groups');
+            $table->string('description');
+            $table->string('submission_date');
+            $table->string('image')->nullable();
+            $table->foreignId('createdBy')->constrained('users');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('assignments');
+    }
+}
