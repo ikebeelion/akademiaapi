@@ -213,6 +213,8 @@ Route::put('deletedomain',[\App\Http\Controllers\ResultController::class, 'delet
 Route::get('domain/{studentid}/{periodid}', [\App\Http\Controllers\ResultController::class, 'getDomain'])->name('getDomain');
 Route::get('studentscount/{roomgroupid}', [\App\Http\Controllers\ResultController::class, 'getStudentCount'])->name('getStudentCount');
 
+Route::post('reset-password/', [\App\Http\Controllers\ResetPasswordController::class, 'reset_password']);
+
 // Psychomotor
 Route::get('psychomotors/{id}', [\App\Http\Controllers\PsychomotorController::class, 'index'])->name('index');
 Route::post('psychomotors/store', [\App\Http\Controllers\PsychomotorController::class, 'store'])->name('store');

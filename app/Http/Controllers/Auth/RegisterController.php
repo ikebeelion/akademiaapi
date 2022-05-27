@@ -3,15 +3,27 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\SendPassword;
 use App\Models\Branch;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class RegisterController extends Controller
 {
+    public function random_strings($length_of_string)
+    {
+        // String of all alphanumeric character
+        $str_result = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+        // Shuffle the $str_result and returns substring of specified length
+        return substr(str_shuffle($str_result),
+                        0, $length_of_string);
+    }
+
     public function registerSchool(Request $request){
         /*
             Author: Ikenna Edmund Anikwe (Star Boy)
@@ -21,7 +33,6 @@ class RegisterController extends Controller
             email_address: eddyiyke3@gmail.com
             tel: 08147082856'
             if you're managing this code, you can always reach out to me
-            with chikini $1,000,000
 
             for testing ensure
              - country has a data
@@ -30,11 +41,13 @@ class RegisterController extends Controller
              - role has a data
          */
             $data = $request->all();
+            // dd($data);
             // return response()->json($data);
             // validate school tel, email,
             $schemailtel = School::where('schoolemail', $data[0]['schoolemail'])
                                 ->orWhere('schooltel', $data[0]['schooltel'])
                                 ->get();
+                                // dd($schemailtel);
 
             if($schemailtel->isEmpty()){
                 // first get the school data 0
@@ -58,15 +71,23 @@ class RegisterController extends Controller
                 $branch_data->branchaddress = $data[2]['branchaddress'];
                 $branch_data->save();
                 // get the branch id and append to the user table 1
+                $pass = $this->random_strings(8);
                 $user_data = new User();
                 $user_data->username = $data[1]['username'];
+                $user_data->email = $data[0]['schoolemail'];
                 $user_data->roleid = 2;
-                $user_data->password = Hash::make($data[1]['password']);
+                $user_data->password = Hash::make($pass);
                 $user_data->branchid = $branch_data['id'];
                 $user_data->save();
                 // send email verification
+                try {
+                    Mail::to($data[0]['schoolemail'])->send(new SendPassword('New Acount Password', $pass));
+                    return response()->json(['message'=>'School Profile Created, Check Email for password'], 200);
+                } catch (\Throwable $th) {
+                    return response()->json(['message'=>'Could not send email'], 500);
+                }
             }else{
-                throw ValidationException::withMessages(['Another School with Email or telephone exists!']);
+                throw ValidationException::withMessages(['message'=>'Another School with Email or telephone exists!'], 401);
             }
 
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SendPassword;
 use App\Models\Attendance;
 use App\Models\ClassRoomGroup;
 use App\Models\EmploymentHistory;
@@ -18,10 +19,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class StaffController extends Controller
 {
+    public function random_strings($length_of_string)
+    {
+        // String of all alphanumeric character
+        $str_result = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+        // Shuffle the $str_result and returns substring of specified length
+        return substr(str_shuffle($str_result),
+                        0, $length_of_string);
+    }
+
     public function index($id){
         $staff = StaffProfile::select('staff_profiles.*')
         ->join('users', 'staff_profiles.staffuseraccountid', 'users.id')
@@ -61,10 +73,14 @@ class StaffController extends Controller
             $newUser = new User();
             $newUser->roleid = 3;
             $newUser->username = strtolower(substr($data['firstname'], 0,2).substr($data['lastname'],0,2));
-            $newUser->password = Hash::make(Carbon::today()->toDateString());
-            $newUser->stringpassword = Carbon::today()->toDateString();
+            $pass = Hash::make($this->random_strings(8));
+            $newUser->password = $pass;
+            $newUser->email = $data['contactemail'];
+            $newUser->stringpassword = $this->random_strings(8);
             $newUser->branchid = $data['branchid'];
             $newUser->save();
+            // send email
+
 
             $staff = new StaffProfile();
             $staff->title = $data['title'];
@@ -91,8 +107,16 @@ class StaffController extends Controller
             $staff->staff_type = $data['staff_type'];
             $staff->createdById = auth('sanctum')->user()->id;
             $staff->save();
-
-            return response()->json('profile created');
+            if($data['contactemail'] != null){
+                try {
+                    Mail::to($data['contactemail'])->send(new SendPassword('New Acount Password', $pass));
+                    return response()->json('profile created');
+                } catch (\Throwable $th) {
+                    return response()->json('Coul not send email', 500);
+                }
+            }else{
+                return response()->json('profile created');
+            }
         }else{
             $staff = new StaffProfile();
             $staff->title = $data['title'];
@@ -157,6 +181,9 @@ public function updateStaff(Request $request, $id){
     $staff->staff_type = $data['staff_type'];
     $staff->createdById = auth('sanctum')->user()->id;;
     $staff->save();
+    $user = User::findOrFail($staff->staffuseraccountid);
+    $user->email = $data['contactemail'];
+    $user->save();
 
     return response()->json('profile updated');
 

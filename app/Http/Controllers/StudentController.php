@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SendPassword;
 use App\Models\Student_ClassRoomGroup;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -9,10 +10,21 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Intervention\Image;
 
 class StudentController extends Controller
 {
+
+    public function random_strings($length_of_string)
+    {
+        // String of all alphanumeric character
+        $str_result = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+        // Shuffle the $str_result and returns substring of specified length
+        return substr(str_shuffle($str_result),
+                        0, $length_of_string);
+    }
     public function getUser($id){
         $students = StudentProfile::where('studentuseraccountid', $id)
                             ->with('classGroup')
@@ -40,7 +52,10 @@ class StudentController extends Controller
             $newUser = new User();
             $newUser->roleid = 4;
             $newUser->username = strtolower(substr($data['firstname'], 0,2).substr($data['lastname'],0,2));
-            $newUser->password = Hash::make($data['dob']);
+            $pass = Hash::make($this->random_strings(8));
+            $newUser->password = $pass;
+            $newUser->email = $data['contactemail'];
+            $newUser->stringpassword = $this->random_strings(8);
             $newUser->branchid = $data['branchid'];
             $newUser->save();
             // dd($newUser->id);
@@ -80,7 +95,16 @@ class StudentController extends Controller
                 //
             }
 
-            return response()->json('profile created');
+            if($data['contactemail'] != null){
+                try {
+                    Mail::to($data['contactemail'])->send(new SendPassword('New Acount Password', $pass));
+                    return response()->json('profile created');
+                } catch (\Throwable $th) {
+                    return response()->json('Coul not send email', 500);
+                }
+            }else{
+                return response()->json('profile created');
+            }
         }else{
             // create profile
             $studentProfile = new StudentProfile();
@@ -157,6 +181,9 @@ class StudentController extends Controller
         $studentProfile->photo = $data['photo'];
         $studentProfile->createdById = auth('sanctum')->user()->id;;
         $studentProfile->save();
+        $user = User::findOrFail($studentProfile->studentuseraccountid);
+        $user->email = $data['contactemail'];
+        $user->save();
 
         return response()->json('profile updated');
     }

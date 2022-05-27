@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SendPassword;
 use App\Models\Parent_Student;
 use App\Models\ParentProfile;
 use App\Models\StudentProfile;
@@ -10,10 +11,21 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpKernel\Profiler\Profile;
 
 class ParentController extends Controller
 {
+    public function random_strings($length_of_string)
+    {
+        // String of all alphanumeric character
+        $str_result = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+        // Shuffle the $str_result and returns substring of specified length
+        return substr(str_shuffle($str_result),
+                        0, $length_of_string);
+    }
+
     public function index($id){
         // studentaccountid
         $parents = ParentProfile::select('parent_profiles.*')
@@ -36,8 +48,10 @@ class ParentController extends Controller
             $newUser = new User();
             $newUser->roleid = 5;
             $newUser->username = strtolower(substr($data['firstname'], 0,2).substr($data['contacttel'],0,2));
-            $newUser->password = Hash::make(Carbon::today()->toDateString());
-            $newUser->stringpassword= Carbon::today()->toDateString();
+            $pass = Hash::make($this->random_strings(8));
+            $newUser->password = $pass;
+            $newUser->email = $data['contactemail'];
+            $newUser->stringpassword = $this->random_strings(8);
             $newUser->branchid = $data['branchid'];
             $newUser->save();
 
@@ -65,7 +79,16 @@ class ParentController extends Controller
             $parentProfile->createdById = auth('sanctum')->user()->id;;
             $parentProfile->save();
 
-            return response()->json('profile created');
+            if($data['contactemail'] != null){
+                try {
+                    Mail::to($data['contactemail'])->send(new SendPassword('New Acount Password', $pass));
+                    return response()->json('profile created');
+                } catch (\Throwable $th) {
+                    return response()->json('Coul not send email', 500);
+                }
+            }else{
+                return response()->json('profile created');
+            }
         }else{
              // create profile
              $parentProfile = new ParentProfile();
@@ -131,6 +154,9 @@ class ParentController extends Controller
         // dd($parentProfile);
         $parentProfile->createdById = auth('sanctum')->user()->id;;
         $parentProfile->save();
+        $user = User::findOrFail($parentProfile->useraccountid);
+        $user->email = $data['contactemail'];
+        $user->save();
 
         return response()->json('profile updated');
     }

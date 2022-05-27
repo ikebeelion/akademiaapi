@@ -17,19 +17,8 @@
         {{--  <!--*******************
             Preloader start
         ********************-->  --}}
-        <div id="preloader">
-            <div class="sk-three-bounce">
-                <div class="sk-child sk-bounce1"></div>
-                <div class="sk-child sk-bounce2"></div>
-                <div class="sk-child sk-bounce3"></div>
-            </div>
-        </div>
-
         <div id="main-wrapper">
-            <div id="app">
-                <router-view></router-view>
-            </div>
-            <h1>Welcome </h1>
+            <h1>API LANDING PAGE</h1>
         </div>
         <script src="{{ asset('/js/app.js') }}"></script>
         <script data-cfasync="false" src="{{ asset('../cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js') }}"></script>

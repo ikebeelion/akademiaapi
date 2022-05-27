@@ -18,6 +18,7 @@ class CreateUsersTable extends Migration
             $table->foreignId('roleid')->constrained('roles');
             $table->string('username');
             $table->string('password');
+            $table->string('email')->nullable();
             $table->string('stringpassword')->nullable();
             $table->string('email_verified')->nullable();
             $table->foreignId('branchid')->constrained('branches');
